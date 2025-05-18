@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 import torch
 
 
-class WaveletRegressor(BaseEstimator, RegressorMixin):
+class GdWaveletRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, in_features, hidden_features=10, out_features=1,
                  wavelet_fn=morlet, epochs=100, lr=0.01, batch_size=32):
         self.in_features = in_features
@@ -49,7 +49,7 @@ class WaveletRegressor(BaseEstimator, RegressorMixin):
             return self.model_(X_tensor).numpy()
 
 
-class WaveletClassifier(BaseEstimator, ClassifierMixin):
+class GdWaveletClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, in_features, hidden_features=10, out_features=2,
                  wavelet_fn=morlet, epochs=100, lr=0.01, batch_size=32):
         self.in_features = in_features
