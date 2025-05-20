@@ -20,21 +20,27 @@ class BaseCallback:
 
 class PrintLossCallback(BaseCallback):
     def on_epoch_end(self, epoch, logs=None):
-        print(f"[Epoch {epoch+1}] Loss: {logs['loss']:.4f}")
+        msg = f"[Epoch {epoch+1}] Loss: {logs['loss']:.6f}"
+        if logs.get("val_loss") is not None:
+            msg += f" | Val Loss: {logs['val_loss']:.6f}"
+        print(msg)
 
 
 class EarlyStoppingCallback(BaseCallback):
-    def __init__(self, patience=5, min_delta=1e-4):
+    def __init__(self, patience=5, min_delta=1e-4, monitor="val_loss"):
         self.patience = patience
         self.min_delta = min_delta
-        self.best_loss = float('inf')
+        self.monitor = monitor
+        self.best_score = float('inf')
         self.counter = 0
         self.stop_training = False
 
     def on_epoch_end(self, epoch, logs=None):
-        current_loss = logs['loss']
-        if current_loss < self.best_loss - self.min_delta:
-            self.best_loss = current_loss
+        score = logs.get(self.monitor)
+        if score is None:
+            return
+        if score < self.best_score - self.min_delta:
+            self.best_score = score
             self.counter = 0
         else:
             self.counter += 1
@@ -44,28 +50,32 @@ class EarlyStoppingCallback(BaseCallback):
 
 
 class ModelCheckpointCallback(BaseCallback):
-    def __init__(self, save_path="best_model.pt", monitor="loss", mode="min"):
+    def __init__(self, save_path="best_model.pt", monitor="val_loss", mode="min"):
         self.save_path = save_path
         self.monitor = monitor
         self.mode = mode
         self.best_score = float('inf') if mode == "min" else -float('inf')
 
     def on_epoch_end(self, epoch, logs=None):
-        current_score = logs[self.monitor]
-        if (self.mode == "min" and current_score < self.best_score) or \
-           (self.mode == "max" and current_score > self.best_score):
-            self.best_score = current_score
-            torch.save(logs['model_state_dict'], self.save_path)
-            print(f"Saved model at epoch {epoch+1} with {self.monitor}: {current_score:.4f}")
+        score = logs.get(self.monitor)
+        if score is None:
+            return
+        if (self.mode == "min" and score < self.best_score) or \
+           (self.mode == "max" and score > self.best_score):
+            self.best_score = score
+            torch.save(logs["model_state_dict"], self.save_path)
+            print(f"Saved model at epoch {epoch+1} with {self.monitor}: {score:.4f}")
 
 
 class TensorBoardLoggerCallback(BaseCallback):
-    def __init__(self, log_dir="runs/wavelet_experiment"):
+    def __init__(self, log_dir="runs/exp"):
         os.makedirs(log_dir, exist_ok=True)
         self.writer = SummaryWriter(log_dir)
 
     def on_epoch_end(self, epoch, logs=None):
         self.writer.add_scalar("Loss/train", logs["loss"], epoch)
+        if logs.get("val_loss") is not None:
+            self.writer.add_scalar("Loss/val", logs["val_loss"], epoch)
 
     def on_train_end(self, logs=None):
         self.writer.close()
