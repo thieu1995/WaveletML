@@ -209,3 +209,168 @@ class GdWnnClassifier(BaseModel, ClassifierMixin):
         y_pred = self.predict(X)
         return self.evaluate(y, y_pred, list_metrics)
 
+
+class GdWnnRegressor(BaseModel, RegressorMixin):
+
+    def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
+                 epochs=1000, batch_size=16, optim="Adam", optim_paras=None,
+                 valid_rate=0.1, seed=42, verbose=True, device=None, callbacks=None):
+        super().__init__()
+        self.size_hidden = size_hidden
+        self.wavelet_fn = wavelet_fn
+        self.act_output = act_output
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.optim = optim
+        self.optim_paras = optim_paras if optim_paras else {}
+        self.valid_rate = valid_rate
+        self.seed = seed
+        self.verbose = verbose
+        self.callbacks = callbacks if callbacks else []
+        if callbacks is None:
+            if verbose:
+                self.callbacks = [PrintLossCallback()]
+            else:
+                self.callbacks = []
+        elif type(callbacks) == list:
+            for callback in callbacks:
+                if not isinstance(callback, BaseCallback):
+                    raise ValueError("All callbacks must be instances of BaseCallback.")
+            self.callbacks = callbacks
+        else:
+            raise ValueError("Callbacks must be a list of BaseCallback instances.")
+
+        if device == 'gpu':
+            if torch.cuda.is_available():
+                self.device = 'cuda'
+            else:
+                raise ValueError("GPU is not available. Please set device to 'cpu'.")
+        else:
+            self.device = "cpu"
+
+        self.size_input, self.size_output, self.task = None, 1, "regression"
+        self.network, self.optimizer, self.criterion = None, None, None
+        self.valid_mode, self.loss_train = False, []
+
+    def _process_data(self, X, y):
+        if y.ndim == 1:
+            y = y.reshape(-1, 1)
+        X_valid_tensor, y_valid_tensor, X_valid, y_valid = None, None, None, None
+
+        # Split data into training and validation sets based on valid_rate
+        if self.valid_rate is not None:
+            if 0 < self.valid_rate < 1:
+                # Activate validation mode if valid_rate is set between 0 and 1
+                self.valid_mode = True
+                X, X_valid, y, y_valid = train_test_split(X, y, test_size=self.valid_rate,
+                                                          random_state=self.seed, shuffle=True)
+            else:
+                raise ValueError("Validation rate must be between 0 and 1.")
+
+        # Convert data to tensors and set up DataLoader
+        X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
+        y_tensor = torch.tensor(y, dtype=torch.float32).to(self.device)
+        train_loader = DataLoader(TensorDataset(X_tensor, y_tensor), batch_size=self.batch_size, shuffle=True)
+
+        if self.valid_mode:
+            X_valid_tensor = torch.tensor(X_valid, dtype=torch.float32).to(self.device)
+            y_valid_tensor = torch.tensor(y_valid, dtype=torch.float32).to(self.device)
+        return train_loader, X_valid_tensor, y_valid_tensor
+
+    def fit(self, X, y):
+        # Set up data
+        self.size_input = X.shape[1]
+        y = np.squeeze(np.array(y))
+        if y.ndim == 2:     # Adjust task if multi-dimensional target is provided
+            self.task = "multi_regression"
+            self.size_output = y.shape[1]
+        train_loader, X_valid_tensor, y_valid_tensor = self._process_data(X, y)
+
+        # Define model, optimizer, and loss criterion based on task
+        self.network = CustomWNN(size_input=self.size_input, size_hidden=self.size_hidden,
+                                 size_output=self.size_output, wavelet_fn=self.wavelet_fn,
+                                 act_output=self.act_output, seed=self.seed).to(self.device)
+        self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_paras)
+        self.criterion = nn.MSELoss()
+
+        # Check callbacks on_train_begin
+        for cb in self.callbacks:
+            cb.on_train_begin()
+
+        # Training loop
+        for epoch in range(self.epochs):
+
+            # Check callbacks on_epoch_begin
+            for cb in self.callbacks:
+                cb.on_epoch_begin(epoch)
+
+            self.network.train()  # Set model to training mode
+            train_loss = 0.0
+            for batch_idx, (xb, yb) in enumerate(train_loader):
+                # Check callbacks on_batch_begin
+                for cb in self.callbacks:
+                    cb.on_batch_begin(batch_idx)
+
+                self.optimizer.zero_grad()  # Clear gradients
+                # Forward pass
+                pred = self.network(xb)
+                loss = self.criterion(pred, yb)
+                # Backpropagation and optimization
+                loss.backward()
+                self.optimizer.step()
+                train_loss += loss.item()  # Accumulate batch loss
+                # Check callbacks on_batch_end
+                for cb in self.callbacks:
+                    cb.on_batch_end(batch_idx)
+
+            # Calculate average training loss for this epoch
+            avg_train_loss = train_loss / len(train_loader)
+            self.loss_train.append(avg_train_loss)
+
+            # Perform validation if validation mode is enabled
+            avg_val_loss = None
+            if self.valid_mode:
+                self.network.eval()  # Set model to evaluation mode
+                with torch.no_grad():
+                    val_output = self.network(X_valid_tensor)
+                    val_loss = self.criterion(val_output, y_valid_tensor)
+                    avg_val_loss = val_loss.item()
+
+            logs = {
+                "loss": avg_train_loss,
+                "val_loss": avg_val_loss,
+                "model_state_dict": self.network.state_dict()
+            }
+
+            # Check callbacks on_epoch_end
+            for cb in self.callbacks:
+                cb.on_epoch_end(epoch, logs=logs)
+
+            if any(getattr(cb, "stop_training", False) for cb in self.callbacks):
+                break
+
+        # Check callbacks on_train_end
+        for cb in self.callbacks:
+            cb.on_train_end()
+
+        return self
+
+    def predict(self, X):
+        X_tensor = torch.tensor(X, dtype=torch.float32).to(self.device)
+        self.network.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            predicted = self.network(X_tensor)  # Forward pass to get predictions
+        return predicted.cpu().numpy()  # Convert predictions to numpy array
+
+    def score(self, X, y):
+        """
+        Returns the coefficient of determination R2 of the prediction.
+        """
+        return r2_score(y, self.predict(X))
+
+    def evaluate(self, y_true, y_pred, list_metrics=("MSE", "MAE")):
+        return self._evaluate_reg(y_true, y_pred, list_metrics)  # Call the evaluation method
+
+    def scores(self, X, y, list_metrics=("MSE", "MAE")):
+        y_pred = self.predict(X)
+        return self.evaluate(y, y_pred, list_metrics)
