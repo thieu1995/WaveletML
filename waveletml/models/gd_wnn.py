@@ -66,7 +66,7 @@ class BaseGdWnnModel(BaseModel):
         wnn_type = kwargs.get("wnn_type")
         if wnn_type is None:
             self.wnn_model = cwnn.CustomWaveletWeightedLinearNetwork
-        elif isinstance(wnn_type, cwnn.BaseCustomWNN):
+        elif issubclass(wnn_type, cwnn.BaseCustomWNN):
             self.wnn_model = wnn_type
         elif isinstance(wnn_type, str):
             self.wnn_model = getattr(cwnn, wnn_type, cwnn.CustomWaveletWeightedLinearNetwork)

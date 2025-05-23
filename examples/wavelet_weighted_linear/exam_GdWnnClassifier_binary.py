@@ -5,7 +5,7 @@
 # --------------------------------------------------%
 
 from sklearn.datasets import load_breast_cancer
-from waveletml import Data, GdWnnClassifier, EarlyStoppingCallback, ModelCheckpointCallback, TensorBoardLoggerCallback
+from waveletml import Data, GdWnnClassifier, EarlyStoppingCallback, ModelCheckpointCallback, FileLoggerCallback
 
 
 ## Load data object
@@ -29,7 +29,7 @@ print(type(data.X_train), type(data.y_train))
 callbacks = [
         EarlyStoppingCallback(patience=5, monitor="val_loss"),
         ModelCheckpointCallback(monitor="val_loss"),
-        TensorBoardLoggerCallback()
+        FileLoggerCallback()
 ]
 model = GdWnnClassifier(size_hidden=10, wavelet_fn="morlet", act_output=None,
                         epochs=50, batch_size=16, optim="Adam", optim_paras=None,
