@@ -4,9 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-import os
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 
 class BaseCallback:
@@ -67,15 +65,16 @@ class ModelCheckpointCallback(BaseCallback):
             print(f"Saved model at epoch {epoch+1} with {self.monitor}: {score:.4f}")
 
 
-class TensorBoardLoggerCallback(BaseCallback):
-    def __init__(self, log_dir="runs/exp"):
-        os.makedirs(log_dir, exist_ok=True)
-        self.writer = SummaryWriter(log_dir)
+class FileLoggerCallback(BaseCallback):
+    def __init__(self, log_file="training_log.txt"):
+        self.log_file = log_file
+        with open(self.log_file, "w") as f:
+            f.write("epoch,loss,val_loss\n")
 
     def on_epoch_end(self, epoch, logs=None):
-        self.writer.add_scalar("Loss/train", logs["loss"], epoch)
-        if logs.get("val_loss") is not None:
-            self.writer.add_scalar("Loss/val", logs["val_loss"], epoch)
+        with open(self.log_file, "a") as f:
+            line = f"{epoch},{logs.get('loss')},{logs.get('val_loss', '')}\n"
+            f.write(line)
 
     def on_train_end(self, logs=None):
-        self.writer.close()
+        print(f"Training log saved to {self.log_file}")
