@@ -23,7 +23,7 @@ class BaseGdWnnModel(BaseModel):
     """
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
-                 epochs=1000, batch_size=16, optim="Adam", optim_paras=None,
+                 epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  valid_rate=0.1, seed=42, verbose=True, device=None, **kwargs):
         super().__init__()
         self.size_hidden = size_hidden
@@ -32,7 +32,9 @@ class BaseGdWnnModel(BaseModel):
         self.epochs = epochs
         self.batch_size = batch_size
         self.optim = optim
-        self.optim_paras = optim_paras if optim_paras else {}
+        self.optim_params = optim_params
+        if optim_params is None:
+            self.optim_params = {}
         self.valid_rate = valid_rate
         self.seed = seed
         self.verbose = verbose
@@ -72,7 +74,7 @@ class BaseGdWnnModel(BaseModel):
             self.wnn_model = getattr(cwnn, wnn_type, cwnn.CustomWaveletWeightedLinearNetwork)
         else:
             raise ValueError("wnn_type must be a string or an instance of BaseCustomWNN.")
-
+        self.kwargs = kwargs
         self.size_input, self.size_output = None, None
         self.network, self.optimizer, self.criterion = None, None, None
         self.valid_mode, self.loss_train = False, []
@@ -148,10 +150,10 @@ class BaseGdWnnModel(BaseModel):
 class GdWnnClassifier(BaseGdWnnModel, ClassifierMixin):
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
-                 epochs=1000, batch_size=16, optim="Adam", optim_paras=None,
+                 epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  valid_rate=0.1, seed=42, verbose=True, device=None, **kwargs):
         super().__init__(size_hidden, wavelet_fn, act_output, epochs, batch_size,
-                         optim, optim_paras, valid_rate, seed, verbose, device, **kwargs)
+                         optim, optim_params, valid_rate, seed, verbose, device, **kwargs)
         self.classes_, self.task = None, "classification"
 
     def _process_data(self, X, y):
@@ -202,7 +204,7 @@ class GdWnnClassifier(BaseGdWnnModel, ClassifierMixin):
         self.network = self.wnn_model(input_dim=self.size_input, hidden_dim=self.size_hidden,
                                       output_dim=self.size_output, wavelet_fn=self.wavelet_fn,
                                       act_output=self.act_output, seed=self.seed).to(self.device)
-        self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_paras)
+        self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_params)
         self._train(X, y)  # Call the training method
         return self
 
@@ -243,10 +245,10 @@ class GdWnnClassifier(BaseGdWnnModel, ClassifierMixin):
 class GdWnnRegressor(BaseGdWnnModel, RegressorMixin):
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
-                 epochs=1000, batch_size=16, optim="Adam", optim_paras=None,
+                 epochs=1000, batch_size=16, optim="Adam", optim_params=None,
                  valid_rate=0.1, seed=42, verbose=True, device=None, **kwargs):
         super().__init__(size_hidden, wavelet_fn, act_output, epochs, batch_size,
-                         optim, optim_paras, valid_rate, seed, verbose, device, **kwargs)
+                         optim, optim_params, valid_rate, seed, verbose, device, **kwargs)
         self.task = "regression"
 
     def _process_data(self, X, y):
@@ -287,7 +289,7 @@ class GdWnnRegressor(BaseGdWnnModel, RegressorMixin):
         self.network = self.wnn_model(input_dim=self.size_input, hidden_dim=self.size_hidden,
                                       output_dim=self.size_output, wavelet_fn=self.wavelet_fn,
                                       act_output=self.act_output, seed=self.seed).to(self.device)
-        self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_paras)
+        self.optimizer = getattr(torch.optim, self.optim)(self.network.parameters(), **self.optim_params)
         self.criterion = nn.MSELoss()
         self._train(X, y)  # Call the training method
         return self
