@@ -5,7 +5,7 @@
 # --------------------------------------------------%
 
 from sklearn.datasets import load_breast_cancer
-from waveletml import Data, GdWnnClassifier, EarlyStoppingCallback, ModelCheckpointCallback, FileLoggerCallback
+from waveletml import Data, GdWnnClassifier
 
 
 ## Load data object
@@ -26,14 +26,9 @@ data.y_test = scaler_y.transform(data.y_test)
 print(type(data.X_train), type(data.y_train))
 
 ## Create model
-callbacks = [
-        EarlyStoppingCallback(patience=5, monitor="val_loss"),
-        ModelCheckpointCallback(monitor="val_loss"),
-        FileLoggerCallback()
-]
 model = GdWnnClassifier(size_hidden=10, wavelet_fn="morlet", act_output=None,
                         epochs=50, batch_size=16, optim="Adam", optim_paras=None,
-                        valid_rate=0.1, seed=42, verbose=True, callbacks=callbacks)
+                        valid_rate=0.1, seed=42, verbose=True, device=None)
 ## Train the model
 model.fit(X=data.X_train, y=data.y_train)
 
@@ -44,3 +39,6 @@ print(model.predict_proba(data.X_test))
 
 ## Calculate some metrics
 print(model.evaluate(y_true=data.y_test, y_pred=y_pred, list_metrics=["F2S", "CKS", "FBS", "PS", "RS", "NPV", "F1S"]))
+
+for k, v in model.network.named_parameters():
+    print(f"{k}: {v.shape}, {v.data}")

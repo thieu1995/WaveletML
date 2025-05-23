@@ -28,7 +28,7 @@ print(type(data.X_train), type(data.y_train))
 ## Create model
 model = GdWnnClassifier(size_hidden=10, wavelet_fn="morlet", act_output=None,
                         epochs=100, batch_size=16, optim="Adam", optim_paras=None,
-                        valid_rate=0.1, seed=42, verbose=True, callbacks=None)
+                        valid_rate=0.1, seed=42, verbose=True, device=None)
 ## Train the model
 model.fit(X=data.X_train, y=data.y_train)
 
@@ -39,3 +39,6 @@ print(model.predict_proba(data.X_test))
 
 ## Calculate some metrics
 print(model.evaluate(y_true=data.y_test, y_pred=y_pred, list_metrics=["F2S", "CKS", "FBS", "PS", "RS", "NPV", "F1S"]))
+
+for k, v in model.network.named_parameters():
+    print(f"{k}: {v.shape}, {v.data}")
