@@ -6,6 +6,8 @@
 
 __version__ = "0.1.0"
 
-from waveletml.helpers.callbacks import ModelCheckpointCallback, TensorBoardLoggerCallback, EarlyStoppingCallback
+from waveletml.helpers.callbacks import ModelCheckpointCallback, EarlyStoppingCallback, FileLoggerCallback
 from waveletml.helpers.data_preparer import Data, DataTransformer
+from waveletml.models.custom_wnn import (BaseCustomWNN, CustomWaveletWeightedLinearNetwork,
+    CustomWaveletProductNetwork, CustomWaveletExpansionNetwork, CustomWaveletSummationNetwork)
 from waveletml.models.gd_wnn import GdWnnClassifier, GdWnnRegressor
