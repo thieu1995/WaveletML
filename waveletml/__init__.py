@@ -11,3 +11,4 @@ from waveletml.helpers.data_preparer import Data, DataTransformer
 from waveletml.models.custom_wnn import (BaseCustomWNN, CustomWaveletWeightedLinearNetwork,
     CustomWaveletProductNetwork, CustomWaveletExpansionNetwork, CustomWaveletSummationNetwork)
 from waveletml.models.gd_wnn import GdWnnClassifier, GdWnnRegressor
+from waveletml.models.mha_wnn import MhaWnnClassifier, MhaWnnRegressor
