@@ -62,7 +62,7 @@ supervised learning applications.
    :maxdepth: 4
    :caption: Models API:
 
-   pages/probnet.rst
+   pages/waveletml.rst
 
 .. toctree::
    :maxdepth: 4
