@@ -17,8 +17,81 @@ from waveletml.models import custom_wnn as cwnn
 
 class BaseMhaWnnModel(BaseModel):
     """
-    Base class for Fully Metaheuristic-based Wavelet Neural Network (GdWNN) models.
-    This class provides common functionality for both classifiers and regressors.
+    Base class for Fully Metaheuristic-based Wavelet Neural Network (MhaWNN) models.
+
+    This class provides common functionality for both classifiers and regressors, including
+    model building, optimization, and evaluation.
+
+    Parameters
+    ----------
+    size_hidden : int, optional
+        Number of hidden neurons in the wavelet neural network (default is 10).
+    wavelet_fn : str, optional
+        Name of the wavelet function to use (default is "morlet").
+    act_output : callable or None, optional
+        Activation function for the output layer (default is None).
+    optim : str, optional
+        Name of the optimizer to use (default is "Adam").
+    optim_params : dict, optional
+        Parameters for the optimizer (default is None).
+    obj_name : str or None, optional
+        Name of the objective function for optimization (default is None).
+    seed : int, optional
+        Random seed for reproducibility (default is 42).
+    verbose : bool, optional
+        Whether to print training progress (default is True).
+    wnn_type : str or None, optional
+        Type of wavelet neural network to use (default is None).
+
+    Attributes
+    ----------
+    size_hidden : int
+        Number of hidden neurons in the wavelet neural network.
+    wavelet_fn : str
+        Name of the wavelet function to use.
+    act_output : callable or None
+        Activation function for the output layer.
+    optim : str
+        Name of the optimizer to use.
+    optim_params : dict
+        Parameters for the optimizer.
+    obj_name : str or None
+        Name of the objective function for optimization.
+    seed : int
+        Random seed for reproducibility.
+    verbose : bool
+        Whether to print training progress.
+    wnn_type : str or None
+        Type of wavelet neural network to use.
+    size_input : int or None
+        Number of input features.
+    size_output : int or None
+        Number of output features.
+    network : torch.nn.Module or None
+        Neural network instance.
+    optimizer : Optimizer or None
+        Optimizer instance.
+    metric_class : callable or None
+        Metric class for evaluation.
+    loss_train : list
+        List of training losses for each epoch.
+    minmax : str or None
+        Optimization direction ('min' or 'max').
+
+    Methods
+    -------
+    _set_optimizer(optim=None, optim_params=None)
+        Sets the optimizer based on the provided name and parameters.
+    get_name()
+        Generates a descriptive name for the model based on the optimizer.
+    build_model()
+        Builds the model architecture and sets the optimizer and loss function.
+    _set_lb_ub(lb=None, ub=None, n_dims=None)
+        Sets the lower and upper bounds for optimization.
+    objective_function(solution=None)
+        Evaluates the fitness function for the given solution.
+    _fit(data, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None, termination=None, save_population=False, **kwargs)
+        Fits the model using the specified optimization method.
     """
 
     SUPPORTED_OPTIMIZERS = list(get_all_optimizers().keys())
@@ -157,8 +230,81 @@ class BaseMhaWnnModel(BaseModel):
 
 class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
     """
-    A Metaheuristic-based WNN Classifier that extends the BaseModel class and implements
-    the ClassifierMixin interface from Scikit-Learn for classification tasks.
+    Metaheuristic-based Wavelet Neural Network (MhaWNN) Classifier.
+
+    This class implements a wavelet-based neural network for classification tasks,
+    leveraging metaheuristic optimization for training.
+
+    Parameters
+    ----------
+    size_hidden : int, optional
+        Number of hidden neurons in the wavelet neural network (default is 10).
+    wavelet_fn : str, optional
+        Name of the wavelet function to use (default is "morlet").
+    act_output : callable or None, optional
+        Activation function for the output layer (default is None).
+    optim : str, optional
+        Name of the optimizer to use (default is "Adam").
+    optim_params : dict, optional
+        Parameters for the optimizer (default is None).
+    obj_name : str or None, optional
+        Name of the objective function for optimization (default is None).
+    seed : int, optional
+        Random seed for reproducibility (default is 42).
+    verbose : bool, optional
+        Whether to print training progress (default is True).
+    wnn_type : str or None, optional
+        Type of wavelet neural network to use (default is None).
+
+    Attributes
+    ----------
+    size_hidden : int
+        Number of hidden neurons in the wavelet neural network.
+    wavelet_fn : str
+        Name of the wavelet function to use.
+    act_output : callable or None
+        Activation function for the output layer.
+    optim : str
+        Name of the optimizer to use.
+    optim_params : dict
+        Parameters for the optimizer.
+    obj_name : str or None
+        Name of the objective function for optimization.
+    seed : int
+        Random seed for reproducibility.
+    verbose : bool
+        Whether to print training progress.
+    wnn_type : str or None
+        Type of wavelet neural network to use.
+    size_input : int or None
+        Number of input features.
+    size_output : int or None
+        Number of output features.
+    network : torch.nn.Module or None
+        Neural network instance.
+    optimizer : Optimizer or None
+        Optimizer instance.
+    metric_class : callable
+        Metric class for evaluation.
+    classes_ : np.ndarray or None
+        Unique class labels in the dataset.
+    task : str
+        Classification task type ('classification' or 'binary_classification').
+    minmax : str or None
+        Optimization direction ('min' or 'max').
+
+    Methods
+    -------
+    fit(X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None, termination=None, save_population=False, **kwargs)
+        Fits the model to the training data.
+    predict(X)
+        Predicts the class labels for the provided input data.
+    predict_proba(X)
+        Computes the probability estimates for each class.
+    score(X, y)
+        Computes the accuracy score of the model based on predictions.
+    evaluate(y_true, y_pred, list_metrics=("AS", "RS"))
+        Evaluates the model using specified metrics for classification tasks.
     """
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
@@ -333,8 +479,77 @@ class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
 
 class MhaWnnRegressor(BaseMhaWnnModel, RegressorMixin):
     """
-    A Metaheuristic-based MLP Regressor that extends the BaseModel class and implements
-    the RegressorMixin interface from Scikit-Learn for regression tasks.
+    Metaheuristic-based Wavelet Neural Network (MhaWNN) Regressor.
+
+    This class implements a wavelet-based neural network for regression tasks,
+    leveraging metaheuristic optimization for training.
+
+    Parameters
+    ----------
+    size_hidden : int, optional
+        Number of hidden neurons in the wavelet neural network (default is 10).
+    wavelet_fn : str, optional
+        Name of the wavelet function to use (default is "morlet").
+    act_output : callable or None, optional
+        Activation function for the output layer (default is None).
+    optim : str, optional
+        Name of the optimizer to use (default is "Adam").
+    optim_params : dict, optional
+        Parameters for the optimizer (default is None).
+    obj_name : str or None, optional
+        Name of the objective function for optimization (default is None).
+    seed : int, optional
+        Random seed for reproducibility (default is 42).
+    verbose : bool, optional
+        Whether to print training progress (default is True).
+    wnn_type : str or None, optional
+        Type of wavelet neural network to use (default is None).
+
+    Attributes
+    ----------
+    size_hidden : int
+        Number of hidden neurons in the wavelet neural network.
+    wavelet_fn : str
+        Name of the wavelet function to use.
+    act_output : callable or None
+        Activation function for the output layer.
+    optim : str
+        Name of the optimizer to use.
+    optim_params : dict
+        Parameters for the optimizer.
+    obj_name : str or None
+        Name of the objective function for optimization.
+    seed : int
+        Random seed for reproducibility.
+    verbose : bool
+        Whether to print training progress.
+    wnn_type : str or None
+        Type of wavelet neural network to use.
+    size_input : int or None
+        Number of input features.
+    size_output : int or None
+        Number of output features.
+    network : torch.nn.Module or None
+        Neural network instance.
+    optimizer : Optimizer or None
+        Optimizer instance.
+    metric_class : callable
+        Metric class for evaluation.
+    task : str
+        Regression task type ('regression' or 'multi_regression').
+    minmax : str or None
+        Optimization direction ('min' or 'max').
+
+    Methods
+    -------
+    fit(X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None, termination=None, save_population=False, **kwargs)
+        Fits the model to the training data.
+    predict(X)
+        Predicts the output values for the provided input data.
+    score(X, y)
+        Computes the R2 score of the model based on predictions.
+    evaluate(y_true, y_pred, list_metrics=("AS", "RS"))
+        Evaluates the model using specified metrics for regression tasks.
     """
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
