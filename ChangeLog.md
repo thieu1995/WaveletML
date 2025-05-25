@@ -1,33 +1,28 @@
-
-# ChangeLog
+# Changelog
 
 ## [0.1.0] - Initial Release
 
-The first official release of **PyLWL** includes the following features:
-
 ### 📁 Project Structure
 - Added essential project files: `CODE_OF_CONDUCT.md`, `MANIFEST.in`, `LICENSE`, `CITATION.cff`, and `requirements.txt`
-- Added structured layout for examples, tests, and documentation site
+- Added structured layout for `examples/`, `tests/`, and `docs/` (documentation site)
 
-### 🧠 Core Modules
-- Implemented shared utility modules:
-  - `verifier`: for validating inputs and parameters
-  - `scaler`: for feature normalization
-  - `scorer`: for evaluation metrics
-  - `data_preparer`: for dataset scaling and splitting
-  - `kernel`: for defining and managing kernel functions
+### 🧰 Helpers Module
+- Added `helpers` package:
+  - `verifier`: input and parameter validation
+  - `evaluator`: evaluation metrics
+  - `data_scaler`: feature normalization
+  - `data_preparer`: dataset scaling and splitting
+  - `callbacks`: custom callback functionality
+  - `wavelet_funcs`: wavelet function definitions and management
+  - `wavelet_layers`: PyTorch-based wavelet layer implementations
 
-### 🧱 Base Framework
-- Introduced `BaseModel` class in `base_model.py` for consistent model design and shared logic
-
-### 🔍 Core Models
-- Implemented classic locally weighted models in `classic_lw.py`:
-  - `LwClassifier`: Locally Weighted Classifier
-  - `LwRegressor`: Locally Weighted Regressor
-- Implemented gradient descent-enhanced variants in `gd_lw.py`:
-  - `GdLwClassifier`: Gradient-Descent Locally Weighted Classifier
-  - `GdLwRegressor`: Gradient-Descent Locally Weighted Regressor
-
-### 🚀 Tooling & Deployment
-- Added GitHub Actions workflow for PyPI publishing
-- Added working examples, test cases, and documentation starter site
+### 🧠 Models Package
+- Added `models` package:
+  - `base_model.py`: defines `BaseModel` for consistent design and logic reuse
+  - `custom_wnn`: custom wavelet neural network implementations (4 types)
+  - `gd_wnn`: fully gradient-descent-based WNNs:
+    - `GdWnnClassifier`: for classification tasks
+    - `GdWnnRegressor`: for regression tasks
+  - `mha_wnn`: fully metaheuristic-optimized WNNs:
+    - `MhaWnnClassifier`: for classification
+    - `MhaWnnRegressor`: for regression
