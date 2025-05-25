@@ -89,20 +89,39 @@ class BaseCustomWNN(nn.Module):
 
 class CustomWaveletWeightedLinearNetwork(BaseCustomWNN):
     """
+    A custom wavelet neural network using a weighted linear layer.
+
     In this version, we calculate the sum of all inputs to each neuron (wx)
-    The we calculate z = (wx - b) / a, where wx is the weighted sum of inputs.
+    Then we calculate z = (wx - b) / a, where wx is the weighted sum of inputs.
     Then we apply the wavelet function to the z value.
     The output layer is a standard linear layer. (weights and bias)
 
-    The number of parameters for WNN(3, 5, 1) is:
+    Examples: The number of parameters for WNN(3, 5, 1) is:
     3 * 5 (weights) + 5 (centers) + 5 (scales) + 5 (weights at output layer) + 1 (bias ouput) = 3 * 5 + 5 + 5 + 1 = 26
+
+    Attributes:
+        wavelet_layer (WaveletWeightedLinearLayer): The wavelet-based weighted linear layer.
+        output_layer (torch.nn.Linear): The standard linear output layer.
+
+    Methods:
+        forward(x): Performs the forward pass of the network.
     """
+
     def __init__(self, input_dim, hidden_dim, output_dim, wavelet_fn="morlet", act_output=None, seed=None):
         super().__init__(input_dim, hidden_dim, output_dim, wavelet_fn, act_output, seed)
         self.wavelet_layer = WaveletWeightedLinearLayer(input_dim, hidden_dim, self.wavelet_fn)
         self.output_layer = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
+        """
+        Performs the forward pass of the network.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Output tensor of shape (batch_size, output_dim).
+        """
         h = self.wavelet_layer(x)
         out = self.output_layer(h)
         out = self.act_out(out)
@@ -111,19 +130,41 @@ class CustomWaveletWeightedLinearNetwork(BaseCustomWNN):
 
 class CustomWaveletProductNetwork (BaseCustomWNN):
     """
-    In this version, we calculate the z value for each input dimension, then we apply the wavelet function to each z value.
-    The output of each hidden neuron is the product of all wavelet functions from input to that hidden neuron.
+    A custom wavelet neural network using a product-based wavelet layer.
+    This network computes the wavelet function for each input dimension, takes the product
+    of the results for each hidden neuron, and passes the result through a standard linear output layer.
+
+    In this version, we calculate the z value for each input dimension, then we apply
+    the wavelet function to each z value. The output of each hidden neuron is the product
+    of all wavelet functions from input to that hidden neuron.
     The output layer is a standard linear layer. (weights and bias).
 
-    The number of parameters for WNN(3, 5, 1) is:
+    Examples: The number of parameters for WNN(3, 5, 1) is:
     5*3 (centers) + 5*3 (scales) + 5 (weights at output layer) + 1 (bias ouput) = 5*3 + 5*3 + 5 + 1 = 36
+
+    Attributes:
+        wavelet_layer (WaveletProductLayer): The wavelet-based product layer.
+        output_layer (torch.nn.Linear): The standard linear output layer.
+
+    Methods:
+        forward(x): Performs the forward pass of the network.
     """
+
     def __init__(self, input_dim, hidden_dim, output_dim, wavelet_fn="morlet", act_output=None, seed=None):
         super().__init__(input_dim, hidden_dim, output_dim, wavelet_fn, act_output, seed)
         self.wavelet_layer = WaveletProductLayer(input_dim, hidden_dim, self.wavelet_fn)
         self.output_layer = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
+        """
+        Performs the forward pass of the network.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Output tensor of shape (batch_size, output_dim).
+        """
         h = self.wavelet_layer(x)
         out = self.output_layer(h)
         out = self.act_out(out)
@@ -132,19 +173,42 @@ class CustomWaveletProductNetwork (BaseCustomWNN):
 
 class CustomWaveletSummationNetwork (BaseCustomWNN):
     """
-    In this version, we calculate the z value for each input dimension, then we apply the wavelet function to each z value.
-    The output of each hidden neuron is the sum of all wavelet functions from input to that hidden neuron.
+    A custom wavelet neural network using a summation-based wavelet layer.
+
+    This network computes the wavelet function for each input dimension, takes the sum
+    of the results for each hidden neuron, and passes the result through a standard linear output layer.
+
+    In this version, we calculate the z value for each input dimension, then we apply
+    the wavelet function to each z value. The output of each hidden neuron is the sum
+    of all wavelet functions from input to that hidden neuron.
     The output layer is a standard linear layer. (weights and bias).
 
     The number of parameters for WNN(3, 5, 1) is:
     5*3 (centers) + 5*3 (scales) + 5 (weights at output layer) + 1 (bias ouput) = 5*3 + 5*3 + 5 + 1 = 36
+
+    Attributes:
+        wavelet_layer (WaveletSummationLayer): The wavelet-based summation layer.
+        output_layer (torch.nn.Linear): The standard linear output layer.
+
+    Methods:
+        forward(x): Performs the forward pass of the network.
     """
+
     def __init__(self, input_dim, hidden_dim, output_dim, wavelet_fn="morlet", act_output=None, seed=None):
         super().__init__(input_dim, hidden_dim, output_dim, wavelet_fn, act_output, seed)
         self.wavelet_layer = WaveletSummationLayer(input_dim, hidden_dim, self.wavelet_fn)
         self.output_layer = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
+        """
+        Performs the forward pass of the network.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Output tensor of shape (batch_size, output_dim).
+        """
         h = self.wavelet_layer(x)
         out = self.output_layer(h)
         out = self.act_out(out)
@@ -153,19 +217,42 @@ class CustomWaveletSummationNetwork (BaseCustomWNN):
 
 class CustomWaveletExpansionNetwork (BaseCustomWNN):
     """
-    In this version, we calculate the z value for each input dimension, then we apply the wavelet function to each z value.
-    The output of each hidden neuron is forming a new feature space. Wavelet-based feature expansion.
+    A custom wavelet neural network using a feature expansion-based wavelet layer.
+
+    This network computes the wavelet function for each input dimension, expands the feature space,
+    and passes the result through a standard linear output layer.
+
+    In this version, we calculate the z value for each input dimension, then we apply
+    the wavelet function to each z value. The output of each hidden neuron is forming a
+    new feature space. Wavelet-based feature expansion.
     The output layer is a standard linear layer. (weights and bias).
 
     The number of parameters for WNN(3, 5, 1) is:
     5*3 (centers) + 5*3 (scales) + 3*5 (weights at output layer) + 1 (bias ouput) = 5*3 + 5*3 + 3*5 + 1 = 46
+
+    Attributes:
+        wavelet_layer (WaveletExpansionLayer): The wavelet-based feature expansion layer.
+        output_layer (torch.nn.Linear): The standard linear output layer.
+
+    Methods:
+        forward(x): Performs the forward pass of the network.
     """
+
     def __init__(self, input_dim, hidden_dim, output_dim, wavelet_fn="morlet", act_output=None, seed=None):
         super().__init__(input_dim, hidden_dim, output_dim, wavelet_fn, act_output, seed)
         self.wavelet_layer = WaveletExpansionLayer(input_dim, hidden_dim, self.wavelet_fn)
         self.output_layer = nn.Linear(input_dim * hidden_dim, output_dim)
 
     def forward(self, x):
+        """
+        Performs the forward pass of the network.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Output tensor of shape (batch_size, output_dim).
+        """
         h = self.wavelet_layer(x)
         out = self.output_layer(h)
         out = self.act_out(out)
