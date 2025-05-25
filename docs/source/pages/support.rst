@@ -4,13 +4,13 @@ Citation Request
 
 Please include these citations if you plan to use this library::
 
-    @software{thieu20250503,
-        author       = {Nguyen Van Thieu},
-        title        = {ProbNet: A Unified Probabilistic Neural Network Framework for Classification and Regression Tasks},
-        month        = may,
-        year         = 2025,
-        doi         = {10.6084/m9.figshare.28802435},
-        url          = {https://github.com/thieu1995/ProbNet}
+    @software{thieu20250525WaveletML,
+      author       = {Nguyen Van Thieu},
+      title        = {WaveletML: A Scalable and Extensible Wavelet Neural Network Framework},
+      month        = may,
+      year         = 2025,
+      doi         = {10.6084/m9.figshare.29095376},
+      url          = {https://github.com/thieu1995/WaveletML}
     }
 
 If you have an open-ended or a research question, you can contact me via nguyenthieu2102@gmail.com.
@@ -20,11 +20,11 @@ If you have an open-ended or a research question, you can contact me via nguyent
 Important links
 ===============
 
-* Official source code repo: https://github.com/thieu1995/ProbNet
-* Official document: https://probnet.readthedocs.io/
-* Download releases: https://pypi.org/project/probnet
-* Issue tracker: https://github.com/thieu1995/ProbNet/issues
-* Notable changes log: https://github.com/thieu1995/ProbNet/blob/main/ChangeLog.md
+* Official source code repo: https://github.com/thieu1995/WaveletML
+* Official document: https://waveletml.readthedocs.io/
+* Download releases: https://pypi.org/project/waveletml
+* Issue tracker: https://github.com/thieu1995/WaveletML/issues
+* Notable changes log: https://github.com/thieu1995/WaveletML/blob/main/ChangeLog.md
 
 * This project also related to our another projects which are "optimization" and "machine learning", check it here:
     * https://github.com/thieu1995/mealpy
