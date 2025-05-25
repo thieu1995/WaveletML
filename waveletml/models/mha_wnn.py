@@ -331,3 +331,140 @@ class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
         return self._evaluate_cls(y_true, y_pred, list_metrics)  # Call evaluation method
 
 
+class MhaWnnRegressor(BaseMhaWnnModel, RegressorMixin):
+    """
+    A Metaheuristic-based MLP Regressor that extends the BaseModel class and implements
+    the RegressorMixin interface from Scikit-Learn for regression tasks.
+    """
+
+    def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
+                 optim="Adam", optim_params=None, obj_name=None,
+                 seed=42, verbose=True, wnn_type=None):
+        """
+        Initializes the MhaWnnRegressor with specified parameters.
+        """
+        super().__init__(size_hidden=size_hidden, wavelet_fn=wavelet_fn, act_output=act_output,
+                         optim=optim, optim_params=optim_params, obj_name=obj_name,
+                         seed=seed, verbose=verbose, wnn_type=wnn_type)
+        self.metric_class = RegressionMetric  # Set the metric class for evaluation
+
+    def fit(self, X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
+            termination=None, save_population=False, **kwargs):
+        """
+        Fits the model to the training data.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Training data.
+        y : array-like, shape (n_samples,) or (n_samples, n_outputs)
+            Target values.
+        lb : tuple, optional
+            Lower bounds for optimization (default is (-1.0,)).
+        ub : tuple, optional
+            Upper bounds for optimization (default is (1.0,)).
+        mode : str, optional
+            Mode for optimization (default is 'single').
+        n_workers : int, optional
+            Number of workers for parallel processing (default is None).
+        termination : any, optional
+            Termination criteria for optimization (default is None).
+        save_population : bool, optional
+            Whether to save the population during optimization (default is False).
+        **kwargs : additional parameters
+            Additional parameters for fitting.
+
+        Returns
+        -------
+        self : MhaWnnRegressor
+            Returns the instance of the fitted model.
+        """
+        ## Check the parameters
+        self.size_input = X.shape[1]  # Number of input features
+        y = np.squeeze(np.array(y))  # Convert y to a numpy array and squeeze dimensions
+        self.size_output = 1  # Default output size for single-output regression
+        self.task = "regression"  # Default task is regression
+
+        if y.ndim == 2:
+            self.task = "multi_regression"  # Set task for multi-output regression
+            self.size_output = y.shape[1]  # Update output size for multi-output
+
+        ## Check objective function
+        if type(self.obj_name) == str and self.obj_name in self.SUPPORTED_REG_OBJECTIVES.keys():
+            self.minmax = self.SUPPORTED_REG_OBJECTIVES[self.obj_name]
+        else:
+            raise ValueError("obj_name is not supported. Please check the library: permetrics to see the supported objective function.")
+
+        ## Process data
+        X_tensor = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
+
+        ## Build model
+        self.build_model()  # Build the model architecture
+
+        ## Fit the data
+        self._fit((X_tensor, y), lb, ub, mode, n_workers, termination, save_population, **kwargs)
+
+        return self  # Return the fitted model
+
+    def predict(self, X):
+        """
+        Predicts the output values for the provided input data.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Input data for prediction.
+
+        Returns
+        -------
+        np.ndarray
+            Predicted output values for each sample.
+        """
+        if not isinstance(X, (torch.Tensor)):
+            X = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
+        self.network.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            predicted = self.network(X)  # Get model predictions
+        return predicted.detach().cpu().numpy()  # Return predictions as a numpy array
+
+    def score(self, X, y):
+        """
+        Computes the R2 score of the model based on predictions.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Input data for scoring.
+        y : array-like, shape (n_samples,)
+            True labels for comparison.
+
+        Returns
+        -------
+        float
+            R2 score of the model.
+        """
+        y_pred = self.predict(X)  # Get predictions
+        return r2_score(y, y_pred)  # Calculate and return R^2 score
+
+    def evaluate(self, y_true, y_pred, list_metrics=("AS", "RS")):
+        """
+        Return the list of performance metrics on the given test data and labels.
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            True values for `X`.
+
+        y_pred : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            Predicted values for `X`.
+
+        list_metrics : list, default=("AS", "RS")
+            List of metrics to compute using Permetrics library:
+            https://github.com/thieu1995/permetrics
+
+        Returns
+        -------
+        results : dict
+            A dictionary containing the results of the requested metrics.
+        """
+        return self._evaluate_reg(y_true, y_pred, list_metrics)  # Call evaluation method
