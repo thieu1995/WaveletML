@@ -4,6 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
+from typing import Optional, Union, Type
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, r2_score
@@ -253,8 +254,12 @@ class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Whether to print training progress (default is True).
-    wnn_type : str or None, optional
-        Type of wavelet neural network to use (default is None).
+    wnn_type : str or Type[BaseCustomWNN] or None, optional
+        Specify the type of Wavelet Neural Network to use.
+        Can be:
+        - A string name of a class defined in `waveletml.models.custom_wnn`
+        - A class inheriting from `BaseCustomWNN`
+        - None (defaults to `CustomWaveletWeightedLinearNetwork`)
 
     Attributes
     ----------
@@ -309,7 +314,7 @@ class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
                  optim="Adam", optim_params=None, obj_name=None,
-                 seed=42, verbose=True, wnn_type=None):
+                 seed=42, verbose=True, wnn_type: Optional[Union[str, Type[cwnn.BaseCustomWNN]]] = None):
         """
         Initializes the MhaWnnClassifier with specified parameters.
         """
@@ -367,7 +372,8 @@ class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
         if type(self.obj_name) == str and self.obj_name in self.SUPPORTED_CLS_OBJECTIVES.keys():
             self.minmax = self.SUPPORTED_CLS_OBJECTIVES[self.obj_name]
         else:
-            raise ValueError("obj_name is not supported. Please check the library: permetrics to see the supported objective function.")
+            raise ValueError("obj_name is not supported. Please check the library: "
+                             "permetrics to see the supported objective function.")
 
         ## Process data
         X_tensor = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
@@ -502,8 +508,12 @@ class MhaWnnRegressor(BaseMhaWnnModel, RegressorMixin):
         Random seed for reproducibility (default is 42).
     verbose : bool, optional
         Whether to print training progress (default is True).
-    wnn_type : str or None, optional
-        Type of wavelet neural network to use (default is None).
+    wnn_type : str or Type[BaseCustomWNN] or None, optional
+        Specify the type of Wavelet Neural Network to use.
+        Can be:
+        - A string name of a class defined in `waveletml.models.custom_wnn`
+        - A class inheriting from `BaseCustomWNN`
+        - None (defaults to `CustomWaveletWeightedLinearNetwork`)
 
     Attributes
     ----------
@@ -554,7 +564,7 @@ class MhaWnnRegressor(BaseMhaWnnModel, RegressorMixin):
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
                  optim="Adam", optim_params=None, obj_name=None,
-                 seed=42, verbose=True, wnn_type=None):
+                 seed=42, verbose=True, wnn_type: Optional[Union[str, Type[cwnn.BaseCustomWNN]]] = None):
         """
         Initializes the MhaWnnRegressor with specified parameters.
         """
