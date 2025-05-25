@@ -154,3 +154,180 @@ class BaseMhaWnnModel(BaseModel):
         self.loss_train = np.array(self.optimizer.history.list_global_best_fit)
         return self
 
+
+class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
+    """
+    A Metaheuristic-based WNN Classifier that extends the BaseModel class and implements
+    the ClassifierMixin interface from Scikit-Learn for classification tasks.
+    """
+
+    def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
+                 optim="Adam", optim_params=None, obj_name=None,
+                 seed=42, verbose=True, wnn_type=None):
+        """
+        Initializes the MhaWnnClassifier with specified parameters.
+        """
+        super().__init__(size_hidden=size_hidden, wavelet_fn=wavelet_fn, act_output=act_output,
+                         optim=optim, optim_params=optim_params, obj_name=obj_name,
+                         seed=seed, verbose=verbose, wnn_type=wnn_type)
+        self.classes_ = None  # Initialize classes to None
+        self.metric_class = ClassificationMetric  # Set the metric class for evaluation
+
+    def fit(self, X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
+            termination=None, save_population=False, **kwargs):
+        """
+        Fits the model to the training data.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Training data.
+        y : array-like, shape (n_samples,)
+            Target values.
+        lb : tuple, optional
+            Lower bounds for optimization (default is (-1.0,)).
+        ub : tuple, optional
+            Upper bounds for optimization (default is (1.0,)).
+        mode : str, optional
+            Mode for optimization (default is 'single').
+        n_workers : int, optional
+            Number of workers for parallel processing (default is None).
+        termination : any, optional
+            Termination criteria for optimization (default is None).
+        save_population : bool, optional
+            Whether to save the population during optimization (default is False).
+        **kwargs : additional parameters
+            Additional parameters for fitting.
+
+        Returns
+        -------
+        self : MhaWnnClassifier
+            Returns the instance of the fitted model.
+        """
+        ## Check the parameters
+        self.size_input = X.shape[1]  # Number of features
+        y = np.squeeze(np.array(y))  # Convert y to a numpy array and squeeze dimensions
+        if y.ndim != 1:
+            y = np.argmax(y, axis=1)  # Convert to 1D if it’s not already
+        self.classes_ = np.unique(y)  # Get unique classes from y
+        if len(self.classes_) == 2:
+            self.task = "binary_classification"  # Set task for binary classification
+            self.size_output = 1  # Output size for binary classification
+        else:
+            self.task = "classification"  # Set task for multi-class classification
+            self.size_output = len(self.classes_)  # Output size for multi-class
+
+        ## Check objective function
+        if type(self.obj_name) == str and self.obj_name in self.SUPPORTED_CLS_OBJECTIVES.keys():
+            self.minmax = self.SUPPORTED_CLS_OBJECTIVES[self.obj_name]
+        else:
+            raise ValueError("obj_name is not supported. Please check the library: permetrics to see the supported objective function.")
+
+        ## Process data
+        X_tensor = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
+
+        ## Build model
+        self.build_model()  # Build the model architecture
+
+        ## Fit the data
+        self._fit((X_tensor, y), lb, ub, mode, n_workers, termination, save_population, **kwargs)  # Fit the model
+
+        return self  # Return the fitted model
+
+    def predict(self, X):
+        """
+        Predicts the class labels for the provided input data.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Input data for prediction.
+
+        Returns
+        -------
+        np.ndarray
+            Predicted class labels for each sample.
+        """
+        if not isinstance(X, (torch.Tensor)):
+            X = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
+        self.network.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            output = self.network(X)  # Get model predictions
+            if self.task =="classification":        # Multi-class classification
+                _, predicted = torch.max(output, 1)
+            else:       # Binary classification
+                predicted = (output > 0.5).int().squeeze()
+        return predicted.numpy()  # Return as a numpy array
+
+    def score(self, X, y):
+        """
+        Computes the accuracy score of the model based on predictions.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Input data for scoring.
+        y : array-like, shape (n_samples,)
+            True labels for comparison.
+
+        Returns
+        -------
+        float
+            Accuracy score of the model.
+        """
+        y_pred = self.predict(X)  # Get predictions
+        return accuracy_score(y, y_pred)  # Calculate and return accuracy score
+
+    def predict_proba(self, X):
+        """
+        Computes the probability estimates for each class (for classification tasks only).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Input data for which to predict probabilities.
+
+        Returns
+        -------
+        np.ndarray
+            Probability predictions for each class.
+
+        Raises
+        ------
+        ValueError
+            If the task is not a classification task.
+        """
+        if not isinstance(X, (torch.Tensor)):
+            X = torch.tensor(X, dtype=torch.float32)  # Convert input data to tensor
+        if self.task not in ["classification", "binary_classification"]:
+            raise ValueError(
+                "predict_proba is only available for classification tasks.")  # Raise error if task is invalid
+        self.network.eval()  # Ensure model is in evaluation mode
+        with torch.no_grad():
+            probs = self.network.forward(X)  # Get the output from forward pass
+        return probs.numpy()  # Return probabilities as a numpy array
+
+    def evaluate(self, y_true, y_pred, list_metrics=("AS", "RS")):
+        """
+        Return the list of performance metrics on the given test data and labels.
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            True values for `X`.
+
+        y_pred : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            Predicted values for `X`.
+
+        list_metrics : list, default=("AS", "RS")
+            List of metrics to compute using Permetrics library:
+            https://github.com/thieu1995/permetrics
+
+        Returns
+        -------
+        results : dict
+            A dictionary containing the results of the requested metrics.
+        """
+        return self._evaluate_cls(y_true, y_pred, list_metrics)  # Call evaluation method
+
+
