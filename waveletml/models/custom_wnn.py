@@ -62,7 +62,7 @@ class BaseCustomWNN(nn.Module):
         """
         with torch.no_grad():
             idx = 0
-            for param in self.network.parameters():
+            for param in self.parameters():
                 param_size = param.numel()
                 # Ensure dtype and device consistency
                 param.copy_(torch.tensor(solution[idx:idx + param_size], dtype=param.dtype, device=param.device).view(param.shape))
@@ -75,7 +75,7 @@ class BaseCustomWNN(nn.Module):
         Returns:
             - np.ndarray: Flattened array of the model's weights.
         """
-        return np.concatenate([param.data.cpu().numpy().flatten() for param in self.network.parameters()])
+        return np.concatenate([param.data.cpu().numpy().flatten() for param in self.parameters()])
 
     def get_weights_size(self):
         """
