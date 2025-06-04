@@ -45,13 +45,13 @@ the gap between theory and practical implementation in wavelet-based learning sy
 
 ## 📦 Installation
 
-You can install the library using `pip` (once published to PyPI):
+Install the latest version using pip:
 
 ```bash
 pip install waveletml
 ```
 
-After installation, you can import `WaveletML` as any other Python module:
+After that, check the version to ensure successful installation:
 
 ```sh
 $ python
@@ -137,7 +137,8 @@ print(type(data.X_train), type(data.y_train))
 ## Create model
 model = MhaWnnRegressor(size_hidden=10, wavelet_fn="morlet", act_output=None,
                         optim="BaseGA", optim_params={"epoch": 40, "pop_size": 20},
-                        obj_name="MSE", seed=42, verbose=True, wnn_type=CustomWaveletSummationNetwork)
+                        obj_name="MSE", seed=42, verbose=True, wnn_type=CustomWaveletSummationNetwork,
+                        lb=None, ub=None, mode='single', n_workers=None, termination=None)
 ## Train the model
 model.fit(data.X_train, data.y_train)
 
@@ -194,6 +195,15 @@ Please include these citations if you plan to use this library:
   year         = 2025,
   doi         = {10.6084/m9.figshare.29095376},
   url          = {https://github.com/thieu1995/WaveletML}
+}
+
+@article{van2023mealpy,
+  title={MEALPY: An open-source library for latest meta-heuristic algorithms in Python},
+  author={Van Thieu, Nguyen and Mirjalili, Seyedali},
+  journal={Journal of Systems Architecture},
+  year={2023},
+  publisher={Elsevier},
+  doi={10.1016/j.sysarc.2023.102871}
 }
 ```
 

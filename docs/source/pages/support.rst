@@ -13,6 +13,15 @@ Please include these citations if you plan to use this library::
       url          = {https://github.com/thieu1995/WaveletML}
     }
 
+    @article{van2023mealpy,
+      title={MEALPY: An open-source library for latest meta-heuristic algorithms in Python},
+      author={Van Thieu, Nguyen and Mirjalili, Seyedali},
+      journal={Journal of Systems Architecture},
+      year={2023},
+      publisher={Elsevier},
+      doi={10.1016/j.sysarc.2023.102871}
+    }
+
 If you have an open-ended or a research question, you can contact me via nguyenthieu2102@gmail.com.
 
 
