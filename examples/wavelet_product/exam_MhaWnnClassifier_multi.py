@@ -28,7 +28,8 @@ print(type(data.X_train), type(data.y_train))
 ## Create model
 model = GdWnnClassifier(size_hidden=10, wavelet_fn="morlet", act_output=None,
                         epochs=100, batch_size=16, optim="Adam", optim_params=None,
-                        valid_rate=0.1, seed=42, verbose=True, device=None, wnn_type=CustomWaveletProductNetwork)
+                        valid_rate=0.1, seed=42, verbose=True, device=None, wnn_type=CustomWaveletProductNetwork,
+                        lb=None, ub=None, mode='single', n_workers=None, termination=None)
 ## Train the model
 model.fit(X=data.X_train, y=data.y_train)
 

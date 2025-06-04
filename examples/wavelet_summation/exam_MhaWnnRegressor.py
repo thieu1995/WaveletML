@@ -28,7 +28,8 @@ print(type(data.X_train), type(data.y_train))
 ## Create model
 model = MhaWnnRegressor(size_hidden=10, wavelet_fn="morlet", act_output=None,
                         optim="BaseGA", optim_params={"epoch": 40, "pop_size": 20},
-                        obj_name="MSE", seed=42, verbose=True, wnn_type=CustomWaveletSummationNetwork)
+                        obj_name="MSE", seed=42, verbose=True, wnn_type=CustomWaveletSummationNetwork,
+                        lb=None, ub=None, mode='single', n_workers=None, termination=None)
 ## Train the model
 model.fit(data.X_train, data.y_train)
 

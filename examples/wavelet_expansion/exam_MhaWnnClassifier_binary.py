@@ -27,8 +27,9 @@ print(type(data.X_train), type(data.y_train))
 
 ## Create model
 model = MhaWnnClassifier(size_hidden=10, wavelet_fn="morlet", act_output=None,
-                        optim="BaseGA", optim_params={"epoch": 40, "pop_size": 20},
-                        obj_name="F1S", seed=42, verbose=True, wnn_type=CustomWaveletExpansionNetwork)
+                         optim="BaseGA", optim_params={"epoch": 40, "pop_size": 20},
+                         obj_name="F1S", seed=42, verbose=True, wnn_type=CustomWaveletExpansionNetwork,
+                         lb=None, ub=None, mode='single', n_workers=None, termination=None)
 ## Train the model
 model.fit(X=data.X_train, y=data.y_train)
 
