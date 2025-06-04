@@ -501,79 +501,74 @@ class MhaWnnRegressor(BaseMhaWnnModel, RegressorMixin):
     """
     Metaheuristic-based Wavelet Neural Network (MhaWNN) Regressor.
 
-    This class implements a wavelet-based neural network for regression tasks,
-    leveraging metaheuristic optimization for training.
+    A regressor that combines wavelet neural networks (WNNs) with metaheuristic
+    optimization algorithms to solve single- and multi-output regression problems.
+    The model leverages customizable wavelet functions in its architecture, and
+    uses population-based optimizers to train the network parameters.
 
     Parameters
     ----------
-    size_hidden : int, optional
-        Number of hidden neurons in the wavelet neural network (default is 10).
-    wavelet_fn : str, optional
-        Name of the wavelet function to use (default is "morlet").
-    act_output : callable or None, optional
-        Activation function for the output layer (default is None).
-    optim : str, optional
-        Name of the optimizer to use (default is "Adam").
-    optim_params : dict, optional
-        Parameters for the optimizer (default is None).
-    obj_name : str or None, optional
-        Name of the objective function for optimization (default is None).
-    seed : int, optional
-        Random seed for reproducibility (default is 42).
-    verbose : bool, optional
-        Whether to print training progress (default is True).
-    wnn_type : str or Type[BaseCustomWNN] or None, optional
-        Specify the type of Wavelet Neural Network to use.
-        Can be:
-        - A string name of a class defined in `waveletml.models.custom_wnn`
-        - A class inheriting from `BaseCustomWNN`
-        - None (defaults to `CustomWaveletWeightedLinearNetwork`)
+    size_hidden : int, optional (default=10)
+        Number of hidden neurons in the wavelet neural network.
+    wavelet_fn : str, optional (default="morlet")
+        Name of the wavelet function to use in the hidden layer.
+    act_output : callable or None, optional (default=None)
+        Activation function to apply at the output layer.
+    optim : str, optional (default="Adam")
+        Name of the metaheuristic optimizer to use. Must be supported by Mealpy.
+    optim_params : dict or None, optional (default=None)
+        Additional parameters for the optimizer. If None, defaults are used.
+    obj_name : str or None, optional (default=None)
+        Name of the objective function (metric) to optimize. Must be supported by `permetrics`.
+    seed : int, optional (default=42)
+        Random seed for reproducibility.
+    verbose : bool, optional (default=True)
+        If True, prints progress and logs during training.
+    wnn_type : str, type, or None, optional (default=None)
+        Specifies the type of WNN to use. Options include:
+            - String name of a WNN class defined in `waveletml.models.custom_wnn`
+            - A subclass of `BaseCustomWNN`
+            - None to use the default `CustomWaveletWeightedLinearNetwork`
+    lb : float, int, list, tuple, or np.ndarray, optional
+        Lower bounds for the optimizer. Defaults to -1.0 for all weights if not set.
+    ub : float, int, list, tuple, or np.ndarray, optional
+        Upper bounds for the optimizer. Defaults to 1.0 for all weights if not set.
+    mode : str, optional (default="single")
+        Optimization mode, e.g., 'single' or 'swarm', 'thread', or 'process'.
+    n_workers : int or None, optional
+        Number of parallel workers (if supported by the optimizer).
+    termination : any, optional
+        Termination criteria for the optimizer.
 
     Attributes
     ----------
-    size_hidden : int
-        Number of hidden neurons in the wavelet neural network.
-    wavelet_fn : str
-        Name of the wavelet function to use.
-    act_output : callable or None
-        Activation function for the output layer.
-    optim : str
-        Name of the optimizer to use.
-    optim_params : dict
-        Parameters for the optimizer.
-    obj_name : str or None
-        Name of the objective function for optimization.
-    seed : int
-        Random seed for reproducibility.
-    verbose : bool
-        Whether to print training progress.
-    wnn_type : str or None
-        Type of wavelet neural network to use.
-    size_input : int or None
+    size_input : int
         Number of input features.
-    size_output : int or None
-        Number of output features.
-    network : torch.nn.Module or None
-        Neural network instance.
-    optimizer : Optimizer or None
-        Optimizer instance.
-    metric_class : callable
-        Metric class for evaluation.
+    size_output : int
+        Number of regression targets (1 for single-output, >1 for multi-output).
+    network : torch.nn.Module
+        Instantiated wavelet neural network model.
+    optimizer : Optimizer
+        Configured metaheuristic optimizer.
     task : str
-        Regression task type ('regression' or 'multi_regression').
-    minmax : str or None
-        Optimization direction ('min' or 'max').
+        Type of regression task: 'regression' or 'multi_regression'.
+    minmax : str
+        Optimization direction ('min' or 'max') based on objective function.
+    metric_class : callable
+        Metric class used for evaluation (set to `RegressionMetric`).
+    loss_train : list of float
+        Training losses (metric values) recorded over epochs.
 
     Methods
     -------
-    fit(X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None, termination=None, save_population=False, **kwargs)
-        Fits the model to the training data.
+    fit(X, y)
+        Trains the model using the specified optimizer on input data X and target y.
     predict(X)
-        Predicts the output values for the provided input data.
+        Predicts output values for the given input data.
     score(X, y)
-        Computes the R2 score of the model based on predictions.
+        Returns R² (coefficient of determination) on test data.
     evaluate(y_true, y_pred, list_metrics=("AS", "RS"))
-        Evaluates the model using specified metrics for regression tasks.
+        Evaluates regression performance using selected metrics.
     """
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
