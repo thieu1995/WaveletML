@@ -5,7 +5,7 @@ authors:
     given-names: "Nguyen"
     orcid: "https://orcid.org/0000-0001-9994-8747"
 title: "WaveletML: A Scalable and Extensible Wavelet Neural Network Framework"
-version: v0.1.0
+version: v0.2.0
 doi: 10.6084/m9.figshare.29095376
-date-released: 2025-05-25
+date-released: 2025-06-05
 url: "https://github.com/thieu1995/WaveletML"

@@ -1,6 +1,6 @@
 # WaveletML: A Scalable and Extensible Wavelet Neural Network Framework
 
-[![GitHub release](https://img.shields.io/badge/release-0.1.0-yellow.svg)](https://github.com/thieu1995/WaveletML/releases)
+[![GitHub release](https://img.shields.io/badge/release-0.2.0-yellow.svg)](https://github.com/thieu1995/WaveletML/releases)
 [![PyPI version](https://badge.fury.io/py/waveletml.svg)](https://badge.fury.io/py/waveletml)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/waveletml.svg)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/waveletml.svg)
@@ -191,7 +191,7 @@ Please include these citations if you plan to use this library:
 @software{thieu20250525WaveletML,
   author       = {Nguyen Van Thieu},
   title        = {WaveletML: A Scalable and Extensible Wavelet Neural Network Framework},
-  month        = may,
+  month        = June,
   year         = 2025,
   doi         = {10.6084/m9.figshare.29095376},
   url          = {https://github.com/thieu1995/WaveletML}

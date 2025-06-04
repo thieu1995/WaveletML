@@ -4,7 +4,7 @@
 #       Github: https://github.com/thieu1995        %                         
 # --------------------------------------------------%
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from waveletml.helpers.callbacks import ModelCheckpointCallback, EarlyStoppingCallback, FileLoggerCallback
 from waveletml.helpers.data_preparer import Data, DataTransformer

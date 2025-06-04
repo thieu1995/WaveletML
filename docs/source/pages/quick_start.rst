@@ -4,7 +4,7 @@ Installation
 
 * Install the `current PyPI release <https://pypi.python.org/pypi/waveletml />`_::
 
-   $ pip install waveletml==0.1.0
+   $ pip install waveletml==0.2.0
 
 
 * Install directly from source code::

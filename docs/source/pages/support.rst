@@ -7,7 +7,7 @@ Please include these citations if you plan to use this library::
     @software{thieu20250525WaveletML,
       author       = {Nguyen Van Thieu},
       title        = {WaveletML: A Scalable and Extensible Wavelet Neural Network Framework},
-      month        = may,
+      month        = June,
       year         = 2025,
       doi         = {10.6084/m9.figshare.29095376},
       url          = {https://github.com/thieu1995/WaveletML}
