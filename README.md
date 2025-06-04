@@ -5,7 +5,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/waveletml.svg)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/waveletml.svg)
 [![Downloads](https://pepy.tech/badge/waveletml)](https://pepy.tech/project/waveletml)
-[![Tests & Publishes to PyPI](https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yaml)
+[![Tests & Publishes to PyPI](https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yml/badge.svg)](https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yml)
 [![Documentation Status](https://readthedocs.org/projects/waveletml/badge/?version=latest)](https://waveletml.readthedocs.io/en/latest/?badge=latest)
 [![Chat](https://img.shields.io/badge/Chat-on%20Telegram-blue)](https://t.me/+fRVCJGuGJg1mNDg1)
 [![DOI](https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.29095376-blue)](https://doi.org/10.6084/m9.figshare.29095376)

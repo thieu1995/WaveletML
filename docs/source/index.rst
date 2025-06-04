@@ -18,8 +18,8 @@ Welcome to WaveletML's documentation!
 .. image:: https://img.shields.io/pypi/dm/waveletml.svg
    :target: https://img.shields.io/pypi/dm/waveletml.svg
 
-.. image:: https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yaml/badge.svg
-   :target: https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yaml
+.. image:: https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yml/badge.svg
+   :target: https://github.com/thieu1995/WaveletML/actions/workflows/publish-package.yml
 
 .. image:: https://pepy.tech/badge/waveletml
    :target: https://pepy.tech/project/waveletml
