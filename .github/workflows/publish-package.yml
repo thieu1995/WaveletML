@@ -38,7 +38,7 @@ jobs:
           key: requirements-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
 
       - name: Download dependencies
-        if: steps.depcache.outputs.cache-hit != 'true'
+        if: steps.depcache.outputs.cache-hit != 'true' && matrix.python-version != '3.13'
         run: |
           pip download --dest=deps -r requirements.txt
 
