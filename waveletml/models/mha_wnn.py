@@ -5,12 +5,13 @@
 # --------------------------------------------------%
 
 from typing import Optional, Union, Type
+import numbers
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, r2_score
 from sklearn.base import ClassifierMixin, RegressorMixin
 from permetrics import ClassificationMetric, RegressionMetric
-from mealpy import get_optimizer_by_name, Optimizer, get_all_optimizers, FloatVar
+from mealpy import get_optimizer_by_class, Optimizer, get_all_optimizers, FloatVar
 from waveletml.helpers.evaluator import get_all_regression_metrics, get_all_classification_metrics
 from waveletml.models.base_model import BaseModel
 from waveletml.models import custom_wnn as cwnn
@@ -18,90 +19,92 @@ from waveletml.models import custom_wnn as cwnn
 
 class BaseMhaWnnModel(BaseModel):
     """
-    Base class for Fully Metaheuristic-based Wavelet Neural Network (MhaWNN) models.
+    Base class for Metaheuristic-Optimized Wavelet Neural Network (MhaWNN) models.
 
-    This class provides common functionality for both classifiers and regressors, including
-    model building, optimization, and evaluation.
+    This class serves as a foundation for constructing Wavelet Neural Networks (WNNs)
+    optimized using various metaheuristic algorithms from the Mealpy library. It supports
+    both regression and classification tasks, offering flexible model configuration,
+    optimization setup, and training management.
 
     Parameters
     ----------
-    size_hidden : int, optional
-        Number of hidden neurons in the wavelet neural network (default is 10).
-    wavelet_fn : str, optional
-        Name of the wavelet function to use (default is "morlet").
-    act_output : callable or None, optional
-        Activation function for the output layer (default is None).
-    optim : str, optional
-        Name of the optimizer to use (default is "Adam").
-    optim_params : dict, optional
-        Parameters for the optimizer (default is None).
-    obj_name : str or None, optional
-        Name of the objective function for optimization (default is None).
-    seed : int, optional
-        Random seed for reproducibility (default is 42).
-    verbose : bool, optional
-        Whether to print training progress (default is True).
-    wnn_type : str or None, optional
-        Type of wavelet neural network to use (default is None).
+    size_hidden : int, optional (default=10)
+        Number of hidden neurons in the WNN.
+    wavelet_fn : str, optional (default="morlet")
+        Name of the wavelet basis function used in hidden layers.
+    act_output : callable or None, optional (default=None)
+        Activation function for the output layer.
+    optim : str, optional (default="Adam")
+        Name of the metaheuristic optimizer. Must be supported by Mealpy.
+    optim_params : dict, optional (default=None)
+        Dictionary of parameters to configure the optimizer.
+    obj_name : str or None, optional (default=None)
+        Name of the objective function or performance metric (e.g., "mse", "accuracy").
+    seed : int, optional (default=42)
+        Random seed for reproducibility.
+    verbose : bool, optional (default=True)
+        If True, prints optimization progress during training.
+    wnn_type : str or subclass of BaseCustomWNN, optional (default=None)
+        Type or custom implementation of the Wavelet Neural Network architecture.
+    lb : float, int, list, or np.ndarray, optional (default=None)
+        Lower bounds for the model's trainable parameters.
+    ub : float, int, list, or np.ndarray, optional (default=None)
+        Upper bounds for the model's trainable parameters.
+    mode : str, optional (default='single')
+        Mode for optimization ('single' or 'multi').
+    n_workers : int or None, optional (default=None)
+        Number of parallel workers used in optimization (if supported).
+    termination : dict or callable, optional (default=None)
+        Termination condition for the optimization process.
 
     Attributes
     ----------
-    size_hidden : int
-        Number of hidden neurons in the wavelet neural network.
-    wavelet_fn : str
-        Name of the wavelet function to use.
-    act_output : callable or None
-        Activation function for the output layer.
-    optim : str
-        Name of the optimizer to use.
-    optim_params : dict
-        Parameters for the optimizer.
-    obj_name : str or None
-        Name of the objective function for optimization.
-    seed : int
-        Random seed for reproducibility.
-    verbose : bool
-        Whether to print training progress.
-    wnn_type : str or None
-        Type of wavelet neural network to use.
     size_input : int or None
-        Number of input features.
+        Number of features in the input dataset.
     size_output : int or None
-        Number of output features.
+        Number of output targets.
     network : torch.nn.Module or None
-        Neural network instance.
+        Constructed wavelet neural network.
     optimizer : Optimizer or None
-        Optimizer instance.
+        Metaheuristic optimizer instance.
     metric_class : callable or None
-        Metric class for evaluation.
+        Metric computation class based on selected objective.
     loss_train : list
-        List of training losses for each epoch.
+        History of training loss over optimization iterations.
     minmax : str or None
-        Optimization direction ('min' or 'max').
+        Indicates whether the optimization is minimizing or maximizing the objective.
+    data : tuple
+        Training data (X, y) used during optimization.
 
     Methods
     -------
     _set_optimizer(optim=None, optim_params=None)
-        Sets the optimizer based on the provided name and parameters.
+        Initializes the optimizer using a string or an Optimizer instance.
+
     get_name()
-        Generates a descriptive name for the model based on the optimizer.
+        Returns a string describing the model and optimizer configuration.
+
     build_model()
-        Builds the model architecture and sets the optimizer and loss function.
+        Constructs the WNN architecture, initializes optimizer and loss functions.
+
     _set_lb_ub(lb=None, ub=None, n_dims=None)
-        Sets the lower and upper bounds for optimization.
+        Normalizes and validates lower and upper bounds for optimization.
+
     objective_function(solution=None)
-        Evaluates the fitness function for the given solution.
-    _fit(data, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None, termination=None, save_population=False, **kwargs)
-        Fits the model using the specified optimization method.
+        Evaluates the loss/fitness of the model given a parameter solution.
+
+    _fit(X, y)
+        Executes the training process using metaheuristic optimization on (X, y).
     """
 
-    SUPPORTED_OPTIMIZERS = list(get_all_optimizers().keys())
+    SUPPORTED_OPTIMIZERS = list(get_all_optimizers(verbose=False).keys())
     SUPPORTED_CLS_OBJECTIVES = get_all_classification_metrics()
     SUPPORTED_REG_OBJECTIVES = get_all_regression_metrics()
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
                  optim="Adam", optim_params=None, obj_name=None,
-                 seed=42, verbose=True, wnn_type=None):
+                 seed=42, verbose=True, wnn_type=None,
+                 lb=None, ub=None, mode='single', n_workers=None, termination=None):
         super().__init__()
         self.size_hidden = size_hidden
         self.wavelet_fn = wavelet_fn
@@ -112,6 +115,11 @@ class BaseMhaWnnModel(BaseModel):
         self.seed = seed
         self.verbose = verbose
         self.wnn_type = wnn_type
+        self.lb = lb
+        self.ub = ub
+        self.mode = mode
+        self.n_workers = n_workers
+        self.termination = termination
 
         # Initialize model parameters
         self.size_input, self.size_output = None, None
@@ -121,7 +129,7 @@ class BaseMhaWnnModel(BaseModel):
 
     def _set_optimizer(self, optim=None, optim_params=None):
         if isinstance(optim, str):
-            opt_class = get_optimizer_by_name(optim)
+            opt_class = get_optimizer_by_class(optim)
             if isinstance(optim_params, dict):
                 return opt_class(**optim_params)
             else:
@@ -139,7 +147,7 @@ class BaseMhaWnnModel(BaseModel):
         """
         Generate a descriptive name for the MLP model based on the optimizer.
         """
-        return f"{self.optimizer.name}-MLP-{self.optim_params}"
+        return f"{self.optimizer.name}-WNN-{self.optim_params}"
 
     def build_model(self):
         """
@@ -166,24 +174,52 @@ class BaseMhaWnnModel(BaseModel):
         self.optimizer = self._set_optimizer(self.optim, self.optim_params)
 
     def _set_lb_ub(self, lb=None, ub=None, n_dims=None):
-        if isinstance(lb, (list, tuple, np.ndarray)) and isinstance(ub, (list, tuple, np.ndarray)):
-            if len(lb) == len(ub):
-                if len(lb) == 1:
-                    lb = np.array(lb * n_dims, dtype=float)
-                    ub = np.array(ub * n_dims, dtype=float)
-                    return lb, ub
-                elif len(lb) == n_dims:
-                    return lb, ub
-                else:
-                    raise ValueError(f"Invalid lb and ub. Their length should be equal to 1 or {n_dims}.")
+        """
+        Validates and sets the lower and upper bounds for optimization.
+
+        Parameters
+        ----------
+        lb : list, tuple, np.ndarray, int, or float, optional
+            The lower bounds for weights and biases in network.
+        ub : list, tuple, np.ndarray, int, or float, optional
+            The upper bounds for weights and biases in network.
+        n_dims : int
+            The number of dimensions.
+
+        Returns
+        -------
+        tuple
+            A tuple containing validated lower and upper bounds.
+
+        Raises
+        ------
+        ValueError
+            If the bounds are not valid.
+        """
+        if lb is None:
+            lb = (-1.,) * n_dims
+        elif isinstance(lb, numbers.Number):
+            lb = (lb, ) * n_dims
+        elif isinstance(lb, (list, tuple, np.ndarray)):
+            if len(lb) == 1:
+                lb = np.array(lb * n_dims, dtype=float)
             else:
-                raise ValueError(f"Invalid lb and ub. They should have the same length.")
-        elif isinstance(lb, (int, float)) and isinstance(ub, (int, float)):
-            lb = (float(lb),) * n_dims
-            ub = (float(ub),) * n_dims
-            return lb, ub
-        else:
-            raise ValueError(f"Invalid lb and ub. They should be a number of list/tuple/np.ndarray with size equal to {n_dims}")
+                lb = np.array(lb, dtype=float).ravel()
+
+        if ub is None:
+            ub = (1.,) * n_dims
+        elif isinstance(ub, numbers.Number):
+            ub = (ub, ) * n_dims
+        elif isinstance(ub, (list, tuple, np.ndarray)):
+            if len(ub) == 1:
+                ub = np.array(ub * n_dims, dtype=float)
+            else:
+                ub = np.array(ub, dtype=float).ravel()
+
+        if len(lb) != len(ub):
+            raise ValueError(f"Invalid lb and ub. Their length should be equal to 1 or {n_dims}.")
+
+        return np.array(lb).ravel(), np.array(ub).ravel()
 
     def objective_function(self, solution=None):
         """
@@ -205,12 +241,11 @@ class BaseMhaWnnModel(BaseModel):
         loss_train = self.metric_class(y_train, y_pred).get_metric_by_name(self.obj_name)[self.obj_name]
         return np.mean([loss_train])
 
-    def _fit(self, data, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
-             termination=None, save_population=False, **kwargs):
+    def _fit(self, X, y):
         # Get data
         n_dims = self.network.get_weights_size()
-        lb, ub = self._set_lb_ub(lb, ub, n_dims)
-        self.data = data
+        lb, ub = self._set_lb_ub(self.lb, self.ub, n_dims)
+        self.data = (X, y)
 
         log_to = "console" if self.verbose else "None"
         problem = {
@@ -218,12 +253,9 @@ class BaseMhaWnnModel(BaseModel):
             "bounds": FloatVar(lb=lb, ub=ub),
             "minmax": self.minmax,
             "log_to": log_to,
-            "save_population": save_population,
         }
-        if termination is None:
-            self.optimizer.solve(problem, mode=mode, n_workers=n_workers, seed=self.seed)
-        else:
-            self.optimizer.solve(problem, mode=mode, n_workers=n_workers, termination=termination, seed=self.seed)
+        self.optimizer.solve(problem, mode=self.mode, n_workers=self.n_workers,
+                             termination=self.termination, seed=self.seed)
         self.network.set_weights(self.optimizer.g_best.solution)
         self.loss_train = np.array(self.optimizer.history.list_global_best_fit)
         return self
@@ -314,18 +346,19 @@ class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
                  optim="Adam", optim_params=None, obj_name=None,
-                 seed=42, verbose=True, wnn_type: Optional[Union[str, Type[cwnn.BaseCustomWNN]]] = None):
+                 seed=42, verbose=True, wnn_type: Optional[Union[str, Type[cwnn.BaseCustomWNN]]] = None,
+                 lb=None, ub=None, mode='single', n_workers=None, termination=None):
         """
         Initializes the MhaWnnClassifier with specified parameters.
         """
         super().__init__(size_hidden=size_hidden, wavelet_fn=wavelet_fn, act_output=act_output,
                          optim=optim, optim_params=optim_params, obj_name=obj_name,
-                         seed=seed, verbose=verbose, wnn_type=wnn_type)
+                         seed=seed, verbose=verbose, wnn_type=wnn_type,
+                         lb=lb, ub=ub, mode=mode, n_workers=n_workers, termination=termination)
         self.classes_ = None  # Initialize classes to None
         self.metric_class = ClassificationMetric  # Set the metric class for evaluation
 
-    def fit(self, X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
-            termination=None, save_population=False, **kwargs):
+    def fit(self, X, y):
         """
         Fits the model to the training data.
 
@@ -382,7 +415,7 @@ class MhaWnnClassifier(BaseMhaWnnModel, ClassifierMixin):
         self.build_model()  # Build the model architecture
 
         ## Fit the data
-        self._fit((X_tensor, y), lb, ub, mode, n_workers, termination, save_population, **kwargs)  # Fit the model
+        self._fit(X_tensor, y)  # Fit the model
 
         return self  # Return the fitted model
 
@@ -564,17 +597,18 @@ class MhaWnnRegressor(BaseMhaWnnModel, RegressorMixin):
 
     def __init__(self, size_hidden=10, wavelet_fn="morlet", act_output=None,
                  optim="Adam", optim_params=None, obj_name=None,
-                 seed=42, verbose=True, wnn_type: Optional[Union[str, Type[cwnn.BaseCustomWNN]]] = None):
+                 seed=42, verbose=True, wnn_type: Optional[Union[str, Type[cwnn.BaseCustomWNN]]] = None,
+                 lb=None, ub=None, mode='single', n_workers=None, termination=None):
         """
         Initializes the MhaWnnRegressor with specified parameters.
         """
         super().__init__(size_hidden=size_hidden, wavelet_fn=wavelet_fn, act_output=act_output,
                          optim=optim, optim_params=optim_params, obj_name=obj_name,
-                         seed=seed, verbose=verbose, wnn_type=wnn_type)
+                         seed=seed, verbose=verbose, wnn_type=wnn_type,
+                         lb=lb, ub=ub, mode=mode, n_workers=n_workers, termination=termination)
         self.metric_class = RegressionMetric  # Set the metric class for evaluation
 
-    def fit(self, X, y, lb=(-1.0,), ub=(1.0,), mode='single', n_workers=None,
-            termination=None, save_population=False, **kwargs):
+    def fit(self, X, y):
         """
         Fits the model to the training data.
 
@@ -627,7 +661,7 @@ class MhaWnnRegressor(BaseMhaWnnModel, RegressorMixin):
         self.build_model()  # Build the model architecture
 
         ## Fit the data
-        self._fit((X_tensor, y), lb, ub, mode, n_workers, termination, save_population, **kwargs)
+        self._fit(X_tensor, y)
 
         return self  # Return the fitted model
 
