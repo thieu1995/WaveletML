@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"] # Exclude 3.13 as it has several issues with PyPI packages
 
     steps:
       - uses: actions/checkout@v3
@@ -38,7 +38,7 @@ jobs:
           key: requirements-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
 
       - name: Download dependencies
-        if: steps.depcache.outputs.cache-hit != 'true' && matrix.python-version != '3.13'
+        if: steps.depcache.outputs.cache-hit != 'true'
         run: |
           pip download --dest=deps -r requirements.txt
 
