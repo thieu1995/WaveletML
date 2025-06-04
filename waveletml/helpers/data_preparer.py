@@ -11,76 +11,128 @@ from waveletml.helpers.data_scaler import *
 
 class TimeSeriesDifferencer:
     """
-    Class used to perform differencing on time series data.
-    This is useful for making the data stationary.
+    A class for applying and reversing differencing on time series data.
 
-    Parameters
-    ----------
-    interval : int
-        The interval for differencing. Default is 1, which means first difference.
+    Differencing helps remove trends and seasonality from time series for better modeling.
     """
+
     def __init__(self, interval=1):
-        self.original_data = None
+        """
+        Initialize the differencer with a specified interval.
+
+        Parameters
+        ----------
+        interval : int
+            The lag interval to use for differencing. Must be >= 1.
+        """
         if interval < 1:
             raise ValueError("Interval for differencing must be at least 1.")
         self.interval = interval
+        self.original_data = None
 
     def difference(self, X):
+        """
+        Apply differencing to the input time series.
+
+        Parameters
+        ----------
+        X : array-like
+            The original time series data.
+
+        Returns
+        -------
+        np.ndarray
+            The differenced time series of length (len(X) - interval).
+        """
+        X = np.asarray(X)
+        if X.ndim != 1:
+            raise ValueError("Input must be a one-dimensional array.")
         self.original_data = X.copy()
         return np.array([X[i] - X[i - self.interval] for i in range(self.interval, len(X))])
 
     def inverse_difference(self, diff_data):
+        """
+        Reverse the differencing transformation using the stored original data.
+
+        Parameters
+        ----------
+        diff_data : array-like
+            The differenced data to invert.
+
+        Returns
+        -------
+        np.ndarray
+            The reconstructed original data (excluding the first `interval` values).
+
+        Raises
+        ------
+        ValueError
+            If the original data is not available.
+        """
         if self.original_data is None:
-            raise ValueError("Original data is required for inversion.")
-        return np.array([diff_data[i - self.interval] + self.original_data[i - self.interval] for i in range(self.interval, len(self.original_data))])
+            raise ValueError("Original data is required for inversion. Call difference() first.")
+        diff_data = np.asarray(diff_data)
+        return np.array([
+            diff_data[i - self.interval] + self.original_data[i - self.interval]
+            for i in range(self.interval, len(self.original_data))
+        ])
 
 
 class FeatureEngineering:
     """
-    Class used to create binary indicator columns for low values in the dataset.
-    This is useful for identifying and processing low values in the data.
-
-    Parameters
-    ----------
-    threshold : float
-        The threshold value for identifying low values.
+    A class for performing custom feature engineering on numeric datasets.
     """
+
     def __init__(self):
         """
-        Initialize the FeatureEngineering class
+        Initialize the FeatureEngineering class.
+
+        Currently, this class has no parameters but can be extended in the future.
         """
-        # Check if the threshold is a valid number
         pass
 
     def create_threshold_binary_features(self, X, threshold):
         """
-        Perform feature engineering to add binary indicator columns for values below the threshold.
-        Add each new column right after the corresponding original column.
+        Add binary indicator columns to mark values below a given threshold.
+        Each original column is followed by a new column indicating whether
+        each value is below the threshold (1 if True, 0 otherwise).
 
-        Args:
-        X (numpy.ndarray): The input 2D matrix of shape (n_samples, n_features).
-        threshold (float): The threshold value for identifying low values.
+        Parameters
+        ----------
+        X : numpy.ndarray
+            The input 2D matrix of shape (n_samples, n_features).
 
-        Returns:
-        numpy.ndarray: The updated 2D matrix with binary indicator columns.
+        threshold : float
+            The threshold value used to determine binary flags.
+
+        Returns
+        -------
+        numpy.ndarray
+            A new 2D matrix of shape (n_samples, 2 * n_features),
+            where each original column is followed by its binary indicator column.
+
+        Raises
+        ------
+        ValueError
+            If `X` is not a NumPy array or not 2D.
+            If `threshold` is not a numeric type.
         """
-        # Check if X is a NumPy array
         if not isinstance(X, np.ndarray):
             raise ValueError("Input X should be a NumPy array.")
-        # Check if the threshold is a valid number
-        if not (isinstance(threshold, int) or isinstance(threshold, float)):
+        if X.ndim != 2:
+            raise ValueError("Input X must be a 2D array.")
+        if not isinstance(threshold, (int, float)):
             raise ValueError("Threshold should be a numeric value.")
 
-        # Create a new matrix to hold the original and new columns
-        X_new = np.zeros((X.shape[0], X.shape[1] * 2))
-        # Iterate over each column in X
+        # Create a new matrix to hold original and new binary columns
+        X_new = np.zeros((X.shape[0], X.shape[1] * 2), dtype=X.dtype)
+
         for idx in range(X.shape[1]):
             feature_values = X[:, idx]
-            # Create a binary indicator column for values below the threshold
             indicator_column = (feature_values < threshold).astype(int)
-            # Add the original column and indicator column to the new matrix
             X_new[:, idx * 2] = feature_values
             X_new[:, idx * 2 + 1] = indicator_column
+
         return X_new
 
 
@@ -104,46 +156,115 @@ class DataTransformer(BaseEstimator, TransformerMixin):
                          "box-cox": BoxCoxScaler, "yeo-johnson": YeoJohnsonScaler}
 
     def __init__(self, scaling_methods=('standard', ), list_dict_paras=None):
-        if type(scaling_methods) is str:
+        """
+        Initialize the DataTransformer.
+
+        Parameters
+        ----------
+        scaling_methods : str or list/tuple of str
+            One or more scaling methods to apply in sequence.
+            Must be keys in SUPPORTED_SCALERS.
+
+        list_dict_paras : dict or list of dict, optional
+            Parameters for each scaler. If only one method is provided,
+            a single dict is expected. If multiple methods are provided,
+            a list of parameter dictionaries should be given.
+        """
+        if isinstance(scaling_methods, str):
             if list_dict_paras is None:
                 self.list_dict_paras = [{}]
-            elif type(list_dict_paras) is dict:
+            elif isinstance(list_dict_paras, dict):
                 self.list_dict_paras = [list_dict_paras]
             else:
-                raise TypeError(f"You use only 1 scaling method, the list_dict_paras should be dict of parameter for that scaler.")
+                raise TypeError("Expected a single dict for list_dict_paras when using one scaling method.")
             self.scaling_methods = [scaling_methods]
-        elif type(scaling_methods) in (tuple, list, np.ndarray):
+        elif isinstance(scaling_methods, (list, tuple, np.ndarray)):
             if list_dict_paras is None:
-                self.list_dict_paras = [{}, ]*len(scaling_methods)
-            elif type(list_dict_paras) in (tuple, list, np.ndarray):
+                self.list_dict_paras = [{} for _ in range(len(scaling_methods))]
+            elif isinstance(list_dict_paras, (list, tuple, np.ndarray)):
                 self.list_dict_paras = list(list_dict_paras)
             else:
-                raise TypeError(f"Invalid type of list_dict_paras. Supported type are: tuple, list, or np.ndarray of parameter dict")
+                raise TypeError("list_dict_paras should be a list/tuple of dicts when using multiple scaling methods.")
             self.scaling_methods = list(scaling_methods)
         else:
-            raise TypeError(f"Invalid type of scaling_methods. Supported type are: str, tuple, list, or np.ndarray")
+            raise TypeError("scaling_methods must be a str, list, tuple, or np.ndarray")
 
-        self.scalers = [self._get_scaler(technique, paras) for (technique, paras) in zip(self.scaling_methods, self.list_dict_paras)]
+        self.scalers = [self._get_scaler(technique, paras) for (technique, paras) in
+                        zip(self.scaling_methods, self.list_dict_paras)]
+
+    @staticmethod
+    def _ensure_2d(X):
+        X = np.asarray(X)
+        if X.ndim == 1:
+            X = X.reshape(-1, 1)  # convert (n,) to (n, 1)
+        elif X.ndim != 2:
+            raise ValueError(f"Input X must be 1D or 2D, but got shape {X.shape}")
+        return X
 
     def _get_scaler(self, technique, paras):
         if technique in self.SUPPORTED_SCALERS.keys():
-            if type(paras) is not dict:
+            if not isinstance(paras, dict):
                 paras = {}
             return self.SUPPORTED_SCALERS[technique](**paras)
         else:
-            raise ValueError(f"Invalid scaling technique. Supported techniques are {self.SUPPORTED_SCALERS.keys()}")
+            raise ValueError(f"Unsupported scaling technique: '{technique}'. Supported techniques: {list(self.SUPPORTED_SCALERS)}")
 
     def fit(self, X, y=None):
+        """
+        Fit the sequence of scalers on the data.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            The input data.
+
+        y : Ignored
+            Not used, exists for compatibility with sklearn's pipeline.
+
+        Returns
+        -------
+        self : object
+            Fitted transformer.
+        """
+        X = self._ensure_2d(X)
         for idx, _ in enumerate(self.scalers):
             X = self.scalers[idx].fit_transform(X)
         return self
 
     def transform(self, X):
+        """
+        Transform the input data using the sequence of fitted scalers.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Input data to transform.
+
+        Returns
+        -------
+        X_transformed : array-like
+            Transformed data.
+        """
+        X = self._ensure_2d(X)
         for scaler in self.scalers:
             X = scaler.transform(X)
         return X
 
     def inverse_transform(self, X):
+        """
+        Reverse the transformations applied to the data.
+
+        Parameters
+        ----------
+        X : array-like
+            Transformed data to invert.
+
+        Returns
+        -------
+        X_original : array-like
+            Original data before transformation.
+        """
+        X = self._ensure_2d(X)
         for scaler in reversed(self.scalers):
             X = scaler.inverse_transform(X)
         return X
